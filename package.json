@@ -1,0 +1,19 @@
+{
+  "name": "lark-bot",
+  "version": "1.0.0",
+  "description": "Lark chatbot powered by Gemini 2.5 Flash",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Your Name",
+  "license": "ISC",
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.55.0",
+    "axios": "^1.7.4",
+    "better-sqlite3": "^12.4.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2"
+  }
+}
