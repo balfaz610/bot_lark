@@ -1,48 +1,41 @@
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
+import admin from "firebase-admin";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
-// Pastikan folder data ada
-const dbPath = path.join(__dirname, '..', 'data', 'messages.db');
-const dbDir = path.dirname(dbPath);
-if (!fs.existsSync(dbDir)) {
-    fs.mkdirSync(dbDir, { recursive: true });
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const firebaseConfigPath = process.env.FIREBASE_CONFIG_PATH || path.join(__dirname, "..", "firebase-key.json");
+
+if (!fs.existsSync(firebaseConfigPath)) throw new Error("Firebase config file tidak ditemukan!");
+
+const serviceAccount = JSON.parse(fs.readFileSync(firebaseConfigPath, "utf8"));
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
 }
 
-const db = new Database(dbPath, { verbose: console.log });
+const db = admin.firestore();
 
-try {
-    db.exec(`
-        CREATE TABLE IF NOT EXISTS events (
-            event_id TEXT PRIMARY KEY,
-            content TEXT
-        );
-        CREATE TABLE IF NOT EXISTS messages (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id TEXT,
-            question TEXT,
-            answer TEXT,
-            msg_size INTEGER,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    `);
-    console.log('✅ Database initialized successfully');
-} catch (e) {
-    console.error('❌ Failed to initialize database:', e.message);
-    throw e;
+export async function saveMessage(sessionId, question, answer) {
+  await db.collection("messages").add({
+    sessionId,
+    question,
+    answer,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+  console.log("💾 Message saved to Firestore");
 }
 
-module.exports = {
-    events: {
-        count: (eventId) => db.prepare('SELECT COUNT(*) as count FROM events WHERE event_id = ?').get(eventId).count,
-        save: (eventId) => db.prepare('INSERT INTO events (event_id) VALUES (?)').run(eventId),
-        findOne: (eventId) => db.prepare('SELECT * FROM events WHERE event_id = ?').get(eventId),
-        update: (eventId, content) => db.prepare('UPDATE events SET content = ? WHERE event_id = ?').run(content, eventId)
-    },
-    messages: {
-        find: (sessionId) => db.prepare('SELECT * FROM messages WHERE session_id = ? ORDER BY created_at DESC').all(sessionId),
-        save: ({ sessionId, question, answer, msgSize }) => db.prepare('INSERT INTO messages (session_id, question, answer, msg_size) VALUES (?, ?, ?, ?)').run(sessionId, question, answer, msgSize),
-        delete: (id) => db.prepare('DELETE FROM messages WHERE id = ?').run(id),
-        deleteMany: (sessionId) => db.prepare('DELETE FROM messages WHERE session_id = ?').run(sessionId)
-    }
-};
+export async function getMessages(sessionId) {
+  const snapshot = await db
+    .collection("messages")
+    .where("sessionId", "==", sessionId)
+    .orderBy("createdAt", "desc")
+    .get();
+
+  return snapshot.docs.map((doc) => doc.data());
+}
+
+console.log("✅ Firebase connected successfully");
