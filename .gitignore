@@ -1,4 +1,3 @@
-node_modules/
-data/messages.db
+node_modules
 .env
 firebase-key.json
