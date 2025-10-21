@@ -5,6 +5,7 @@ import lark from "@larksuiteoapi/node-sdk";
 import { saveMessage } from "./db.js";
 
 dotenv.config();
+
 const app = express();
 app.use(express.json());
 
@@ -32,7 +33,7 @@ async function askGemini(prompt) {
   }
 }
 
-// -------------------- KIRIM PESAN --------------------
+// -------------------- KIRIM PESAN KE LARK --------------------
 async function sendMessage(chatId, text) {
   try {
     await client.im.message.create({
@@ -48,7 +49,8 @@ async function sendMessage(chatId, text) {
 app.post("/api/lark", async (req, res) => {
   const body = req.body;
   if (body.type === "url_verification") return res.json({ challenge: body.challenge });
-  res.status(200).send();
+
+  res.status(200).send(); // langsung respon agar Lark gak timeout
 
   try {
     const event = body?.event;
@@ -60,6 +62,7 @@ app.post("/api/lark", async (req, res) => {
 
     console.log(`[DEBUG] New message: ${message}`);
     const reply = await askGemini(message);
+
     await saveMessage(sessionId, message, reply);
     await sendMessage(chatId, reply);
   } catch (err) {
@@ -67,5 +70,8 @@ app.post("/api/lark", async (req, res) => {
   }
 });
 
+// -------------------- DEFAULT ROUTE --------------------
 app.get("/", (req, res) => res.send("✅ Lark Bot + Gemini + Firebase is running!"));
+
+// Vercel pakai export default, bukan app.listen()
 export default app;
