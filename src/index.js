@@ -73,5 +73,13 @@ app.post("/api/lark", async (req, res) => {
 // -------------------- DEFAULT ROUTE --------------------
 app.get("/", (req, res) => res.send("✅ Lark Bot + Gemini + Firebase is running!"));
 
-// Vercel pakai export default, bukan app.listen()
+// Jalankan server hanya saat lokal (bukan di Vercel)
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
+  });
+}
+
+// Export untuk Vercel
 export default app;
